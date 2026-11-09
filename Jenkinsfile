@@ -1,36 +1,36 @@
 pipeline {
     agent any
-    options { timestamps() }
 
     stages {
-        stage('Etape 1 : Verification du depot') {
+        stage('Checkout') {
             steps {
-                bat 'echo === Etape 1 : Verification du depot ==='
+                checkout scm
                 bat 'git status'
             }
         }
-        stage('Etape 2 : Afficher le contenu du projet') {
+        stage('Build') {
             steps {
-                bat 'echo === Etape 2 : Afficher le contenu du projet ==='
+                bat 'echo Build en cours...'
                 bat 'dir'
             }
         }
-        stage('Etape 3 : Simuler un deploiement local') {
+        stage('Test') {
             steps {
-                bat 'echo === Etape 3 : Simuler un deploiement local ==='
-                bat 'echo Le fichier index.html est pret a etre affiche'
+                bat 'if not exist index.html exit 1'
+                bat 'if not exist style.css exit 1'
+                bat 'findstr "Bienvenue" index.html'
+                bat 'echo Test OK'
             }
         }
-        stage('Etape 4 : Fin du build') {
+        stage('Delivery') {
             steps {
-                bat 'echo === Etape 4 : Fin du build ==='
-                bat 'echo SUCCESS'
+                archiveArtifacts artifacts: '**/*.html, **/*.css'
             }
         }
-    }
-
-    post {
-        success { echo 'Build OK' }
-        failure { echo 'Build KO' }
+        stage('Post Actions') {
+            steps {
+                echo 'Pipeline termine avec succes !'
+            }
+        }
     }
 }
