@@ -1,0 +1,6 @@
+services:
+  web:
+    image: ksi2027/monapp:latest
+    ports:
+      - "8080:80"
+    restart: unless-stopped
