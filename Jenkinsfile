@@ -4,7 +4,7 @@ pipeline {
 
   environment {
     IMAGE = 'ksi2027/monapp'
-    TAG = "build-${env.BUILD_NUMBER}"
+    TAG   = "build-${env.BUILD_NUMBER}"
   }
 
   stages {
@@ -37,7 +37,7 @@ pipeline {
                                           usernameVariable: 'USER',
                                           passwordVariable: 'PASS')]) {
           bat """
-            echo %PASS% | docker login -u %USER% --password-stdin
+            echo %PASS%| docker login -u %USER% --password-stdin
             docker tag %IMAGE%:%TAG% %IMAGE%:latest
             docker push %IMAGE%:%TAG%
             docker push %IMAGE%:latest
