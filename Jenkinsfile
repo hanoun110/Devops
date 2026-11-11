@@ -1,36 +1,54 @@
 pipeline {
-    agent any
+  agent any
+  options { timestamps() }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-                bat 'git status'
-            }
-        }
-        stage('Build') {
-            steps {
-                bat 'echo Build en cours...'
-                bat 'dir'
-            }
-        }
-        stage('Test') {
-            steps {
-                bat 'if not exist index.html exit 1'
-                bat 'if not exist style.css exit 1'
-                bat 'findstr "Bienvenue" index.html'
-                bat 'echo Test OK'
-            }
-        }
-        stage('Delivery') {
-            steps {
-                archiveArtifacts artifacts: '**/*.html, **/*.css'
-            }
-        }
-        stage('Post Actions') {
-            steps {
-                echo 'Pipeline termine avec succes !'
-            }
-        }
+  environment {
+    IMAGE = 'ksi2027/monapp'
+    TAG = "build-${env.BUILD_NUMBER}"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
     }
+
+    stage('Docker Build') {
+      steps {
+        bat 'docker version'
+        bat "docker build -t %IMAGE%:%TAG% ."
+      }
+    }
+
+    stage('Smoke Test') {
+      steps {
+        bat """
+          docker rm -f monapp_test 2>nul || ver > nul
+          docker run -d --name monapp_test -p 8082:80 %IMAGE%:%TAG%
+          ping -n 3 127.0.0.1 > nul
+          curl -I http://localhost:8082 | find "200 OK"
+          docker rm -f monapp_test
+        """
+      }
+    }
+
+    stage('Push (Docker Hub)') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+                                          usernameVariable: 'USER',
+                                          passwordVariable: 'PASS')]) {
+          bat """
+            echo %PASS% | docker login -u %USER% --password-stdin
+            docker tag %IMAGE%:%TAG% %IMAGE%:latest
+            docker push %IMAGE%:%TAG%
+            docker push %IMAGE%:latest
+          """
+        }
+      }
+    }
+  }
+
+  post {
+    success { echo 'Build+Test+Push OK' }
+    failure { echo 'Build/Tests/Push KO' }
+  }
 }
